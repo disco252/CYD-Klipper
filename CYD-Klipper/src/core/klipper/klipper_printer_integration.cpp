@@ -263,6 +263,7 @@ Macros KlipperPrinter::get_macros()
 int KlipperPrinter::get_macros_count()
 {
     HTTPClient client;
+
     configure_http_client(client, "/printer/gcode/help", true, 1000);
 
     int http_code = client.GET();

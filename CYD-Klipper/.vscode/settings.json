@@ -51,6 +51,5 @@
         "typeinfo": "cpp",
         "*.tpp": "cpp"
     },
-    "cmake.configureOnOpen": false,
-    "idf.currentSetup": "E:/esp/"
+    "cmake.configureOnOpen": false
 }
