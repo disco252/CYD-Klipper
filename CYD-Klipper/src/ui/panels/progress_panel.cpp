@@ -1,6 +1,7 @@
 #include "panel.h"
 #include <stdio.h>
 #include "../ui_utils.h"
+#include "../nav_buttons.h"
 #include "../../core/printer_integration.hpp"
 #include "../../core/current_printer.h"
 
@@ -72,6 +73,10 @@ static void btn_click_resume(lv_event_t * e){
 
 static void btn_click_estop(lv_event_t * e){
     current_printer_execute_feature(PrinterFeatures::PrinterFeatureEmergencyStop);
+}
+
+static void btn_open_stats(lv_event_t * e){
+    nav_buttons_setup(PANEL_STATS);
 }
 
 void progress_panel_init(lv_obj_t* panel){
@@ -176,10 +181,27 @@ void progress_panel_init(lv_obj_t* panel){
     lv_obj_align(btn, LV_ALIGN_BOTTOM_RIGHT, -2 * CYD_SCREEN_GAP_PX - CYD_SCREEN_MIN_BUTTON_WIDTH_PX * button_size_mult, -1 * CYD_SCREEN_GAP_PX);
     lv_obj_set_size(btn, CYD_SCREEN_MIN_BUTTON_WIDTH_PX * button_size_mult, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX * button_size_mult);
 
+    bool printing_or_paused = get_current_printer_data()->state >= PrinterState::PrinterStatePrinting;
+
+    if (printing_or_paused)
+    {
+        lv_obj_t * tune_btn = lv_btn_create(panel);
+        lv_obj_align(tune_btn, LV_ALIGN_BOTTOM_LEFT, CYD_SCREEN_GAP_PX, -1 * CYD_SCREEN_GAP_PX);
+        lv_obj_set_size(tune_btn, CYD_SCREEN_MIN_BUTTON_WIDTH_PX * button_size_mult * 2, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX * button_size_mult);
+        lv_obj_add_event_cb(tune_btn, btn_open_stats, LV_EVENT_CLICKED, NULL);
+        lv_obj_t * tune_label = lv_label_create(tune_btn);
+        lv_label_set_text(tune_label, LV_SYMBOL_SETTINGS " Tune");
+        lv_obj_center(tune_label);
+    }
+
     if (get_current_printer()->printer_config->show_stats_on_progress_panel > SHOW_STATS_ON_PROGRESS_PANEL_NONE)
     {
+        int stats_y = -1 * CYD_SCREEN_GAP_PX;
+        if (printing_or_paused)
+            stats_y -= (int)(CYD_SCREEN_MIN_BUTTON_HEIGHT_PX * button_size_mult) + CYD_SCREEN_GAP_PX;
+
         label = lv_label_create(panel);
-        lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, CYD_SCREEN_GAP_PX, -1 * CYD_SCREEN_GAP_PX);
+        lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, CYD_SCREEN_GAP_PX, stats_y);
         lv_obj_set_style_text_font(label, &CYD_SCREEN_FONT_SMALL, 0);
         lv_obj_add_event_cb(label, update_printer_data_stats, LV_EVENT_MSG_RECEIVED, NULL);
         lv_msg_subsribe_obj(DATA_PRINTER_DATA, label, NULL);

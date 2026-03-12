@@ -518,3 +518,54 @@ KlipperConnectionStatus connection_test_klipper(PrinterConfiguration* config)
         return KlipperConnectionStatus::ConnectFail;
     }
 }
+
+PrintHistoryResult KlipperPrinter::get_print_history()
+{
+    PrintHistoryResult result = {};
+
+    {
+        HTTPClient client;
+        configure_http_client(client, "/server/history/totals", true, 3000);
+        if (client.GET() == 200)
+        {
+            JsonDocument filter;
+            filter["result"]["job_totals"]["total_jobs"] = true;
+            filter["result"]["job_totals"]["total_filament_used"] = true;
+            filter["result"]["job_totals"]["total_print_time"] = true;
+            JsonDocument doc;
+            deserializeJson(doc, client.getStream(), DeserializationOption::Filter(filter));
+            JsonObject totals = doc["result"]["job_totals"];
+            result.totals.total_jobs = totals["total_jobs"] | 0;
+            result.totals.total_filament_used_mm = totals["total_filament_used"] | 0.0f;
+            result.totals.total_print_time_s = totals["total_print_time"] | 0.0f;
+            result.totals.success = true;
+        }
+    }
+
+    {
+        HTTPClient client;
+        configure_http_client(client, "/server/history/list?limit=5&order=desc", true, 3000);
+        if (client.GET() == 200)
+        {
+            JsonDocument filter;
+            filter["result"]["jobs"][0]["filename"] = true;
+            filter["result"]["jobs"][0]["status"] = true;
+            filter["result"]["jobs"][0]["filament_used"] = true;
+            filter["result"]["jobs"][0]["print_duration"] = true;
+            JsonDocument doc;
+            deserializeJson(doc, client.getStream(), DeserializationOption::Filter(filter));
+            JsonArray jobs = doc["result"]["jobs"].as<JsonArray>();
+            for (JsonObject job : jobs)
+            {
+                if (result.job_count >= 5) break;
+                auto& e = result.jobs[result.job_count++];
+                strlcpy(e.filename, job["filename"] | "", 64);
+                strlcpy(e.status, job["status"] | "", 16);
+                e.filament_used_mm = job["filament_used"] | 0.0f;
+                e.print_duration_s = (unsigned long)(job["print_duration"] | 0.0f);
+            }
+        }
+    }
+
+    return result;
+}

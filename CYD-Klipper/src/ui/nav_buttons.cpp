@@ -87,7 +87,11 @@ static void btn_click_progress(lv_event_t * e){
 }
 
 static void btn_click_move(lv_event_t * e){
-    nav_buttons_setup(PANEL_MOVE);
+    nav_buttons_setup(PANEL_JOG);
+}
+
+static void btn_click_history(lv_event_t * e){
+    nav_buttons_setup(PANEL_HISTORY);
 }
 
 static void btn_click_extrude(lv_event_t * e){
@@ -186,6 +190,9 @@ void nav_buttons_setup(PANEL_TYPE active_panel){
     // Macros
     create_button(LV_SYMBOL_GPS, "Macro", btn_click_macros, NULL, root_panel);
 
+    // History
+    create_button(LV_SYMBOL_LIST, "Hist", btn_click_history, NULL, root_panel);
+
     if (global_config.multi_printer_mode)
     {
         // Printers
@@ -226,6 +233,12 @@ void nav_buttons_setup(PANEL_TYPE active_panel){
             break;
         case PANEL_PROGRESS:
             progress_panel_init(panel);
+            break;
+        case PANEL_HISTORY:
+            history_panel_init(panel);
+            break;
+        case PANEL_JOG:
+            jog_panel_init(panel);
             break;
     }
 

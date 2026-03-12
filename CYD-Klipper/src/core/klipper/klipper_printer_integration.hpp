@@ -10,6 +10,26 @@ typedef struct {
     float modified;
 } KlipperFileSystemFile;
 
+struct PrintHistoryTotals {
+    bool success;
+    int total_jobs;
+    float total_filament_used_mm;
+    float total_print_time_s;
+};
+
+struct PrintHistoryEntry {
+    char filename[64];
+    char status[16];
+    float filament_used_mm;
+    unsigned long print_duration_s;
+};
+
+struct PrintHistoryResult {
+    PrintHistoryTotals totals;
+    PrintHistoryEntry jobs[5];
+    int job_count;
+};
+
 class KlipperPrinter : public BasePrinter
 {
     private:
@@ -76,6 +96,7 @@ class KlipperPrinter : public BasePrinter
         virtual Thumbnail get_32_32_png_image_thumbnail(const char* gcode_filename);
         bool set_target_temperature(PrinterTemperatureDevice device, unsigned int temperature);
         virtual bool send_gcode(const char* gcode, bool wait = true);
+        PrintHistoryResult get_print_history();
 };
 
 enum KlipperConnectionStatus {

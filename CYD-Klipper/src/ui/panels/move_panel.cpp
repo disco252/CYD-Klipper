@@ -367,3 +367,11 @@ void move_panel_init(lv_obj_t* panel){
     lv_obj_add_event_cb(panel, root_panel_state_update, LV_EVENT_MSG_RECEIVED, NULL);
     lv_msg_subsribe_obj(DATA_PRINTER_DATA, panel, NULL);
 }
+
+void jog_panel_init(lv_obj_t* panel){
+    calculate_offsets_from_current_printer();
+    last_homing_state = !get_current_printer_data()->homed_axis;
+
+    lv_obj_add_event_cb(panel, root_panel_state_update, LV_EVENT_MSG_RECEIVED, NULL);
+    lv_msg_subsribe_obj(DATA_PRINTER_DATA, panel, NULL);
+}
