@@ -11,6 +11,10 @@ Also now with Bambu Lab and Octoprint printers!
 
 ### Required hardware
 
+##
+https://www.amazon.com/Hosyond-320x480-ESP32-32E-Display-ST7796S/dp/B0FGJJ24S1?th=1
+This fork uses a ESP32-32E 4" inch 320x480 display. Based on the following fork for ESP32-2432S028R:
+
 A ESP32-2432S028R is required to run this project. You can find out where to buy these on the ["ESP32 Cheap Yellow Display"](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display#where-to-buy) repository.
 
 ### Features
