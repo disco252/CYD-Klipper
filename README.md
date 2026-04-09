@@ -19,14 +19,25 @@ A ESP32-2432S028R is required to run this project. You can find out where to buy
 - Start a print
 - (When the printer is idle) move the printer
 - (During a print) set fan speed, flow rate, speed and z offset
+- Dedicated jog panel that stays accessible while printing
+- Print history with totals and recent jobs
 - Manage temperature
 - Extrude/Retract filament
 - Execute predefined gcode macros
+- Optional quick macro bar with configurable shortcuts
+- Optional camera preview panel for the active print
 - Toggle Moonraker power devices
 - OTA updates
 - Serial console over USB (115200 8n1, echo off, LF/LF)
 - Control Klipper, Octoprint and Bambu printers.
 - Wired Serial/Usb Klipper connection
+
+### Latest update
+- Added a dedicated jog panel so motion controls are easier to reach, including during prints.
+- Added a history panel with recent jobs, total print time, and total filament usage.
+- Added an optional quick macro bar plus a quick-macro management screen in settings.
+- Added an optional camera preview panel and related settings toggle.
+- Improved config handling and panel safety checks to make startup, navigation, and settings changes more reliable.
 
 ### Install
 

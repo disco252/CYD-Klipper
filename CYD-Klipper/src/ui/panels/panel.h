@@ -17,3 +17,7 @@ void history_panel_init(lv_obj_t* panel);
 void jog_panel_init(lv_obj_t* panel);
 
 void settings_section_device(lv_obj_t* panel);
+void jog_panel_back(lv_event_t* e);
+void quick_macro_bar_init(lv_obj_t* panel);
+void camera_panel_init(lv_obj_t* panel);
+void quick_macro_settings_panel_init(lv_obj_t* panel);

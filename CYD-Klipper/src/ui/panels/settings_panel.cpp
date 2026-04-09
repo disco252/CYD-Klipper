@@ -14,6 +14,11 @@
     #define REPO_VERSION "Unknown"
 #endif // REPO_VERSION
 
+static void settings_trace(const char* stage) {
+    Serial.print("[settings] ");
+    Serial.println(stage);
+}
+
 static void invert_color_switch(lv_event_t * e){
     bool checked = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
     global_config.printer_config[global_config.printer_index].invert_colors = checked;
@@ -39,34 +44,54 @@ static void reset_wifi_click(lv_event_t * e){
 }
 
 static void reset_ip_click(lv_event_t * e){
-    get_current_printer()->printer_config->setup_complete = false;
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    printer->printer_config->setup_complete = false;
     write_global_config();
     ESP.restart();
 }
 
 static void light_mode_switch(lv_event_t * e){
     bool checked = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    get_current_printer()->printer_config->light_mode = checked;
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    printer->printer_config->light_mode = checked;
     write_global_config();
     set_color_scheme();
 }
 
 static void filament_move_mode_switch(lv_event_t * e){
     bool checked = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    get_current_printer()->printer_config->custom_filament_move_macros = checked;
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    printer->printer_config->custom_filament_move_macros = checked;
     write_global_config();
 }
 
 static void show_stats_on_progress_panel_dropdown(lv_event_t * e){
     auto selected = lv_dropdown_get_selected(lv_event_get_target(e));
-    get_current_printer()->printer_config->show_stats_on_progress_panel = selected;
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    printer->printer_config->show_stats_on_progress_panel = selected;
     write_global_config();
 }
 
 static void theme_dropdown(lv_event_t * e){
     lv_obj_t * dropdown = lv_event_get_target(e);
     auto selected = lv_dropdown_get_selected(dropdown);
-    get_current_printer()->printer_config->color_scheme = selected;
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    printer->printer_config->color_scheme = selected;
     set_color_scheme();
     write_global_config();
 }
@@ -130,6 +155,18 @@ static void double_size_gcode_img_switch(lv_event_t* e){
     write_global_config();
 }
 
+static void quick_macro_bar_switch(lv_event_t* e){
+    bool checked = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
+    global_config.quick_macro_bar = checked;
+    write_global_config();
+}
+
+static void camera_enabled_switch(lv_event_t* e){
+    bool checked = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
+    global_config.camera_enabled = checked;
+    write_global_config();
+}
+
 static void rotate_screen_switch(lv_event_t* e){
     bool checked = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
     global_config.rotate_screen = checked;
@@ -159,14 +196,18 @@ static void multi_printer_switch(lv_event_t* e){
     bool checked = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
     global_config.multi_printer_mode = checked;
     write_global_config();
-    nav_buttons_setup(PANEL_SETTINGS);
+    nav_buttons_setup_deferred(PANEL_SETTINGS);
 }
 
 const char* estimated_time_options = "Percentage\nInterpolated\nSlicer";
 
 static void estimated_time_dropdown(lv_event_t * e){
     lv_obj_t * dropdown = lv_event_get_target(e);
-    get_current_printer()->printer_config->remaining_time_calc_mode = lv_dropdown_get_selected(dropdown);
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    printer->printer_config->remaining_time_calc_mode = lv_dropdown_get_selected(dropdown);
     write_global_config();
 }
 
@@ -174,16 +215,31 @@ static void estimated_time_dropdown(lv_event_t * e){
 
 void settings_section_theming(lv_obj_t* panel)
 {
+    settings_trace("theming:start");
     lv_obj_t * label = lv_label_create(panel);
     lv_label_set_text(label, "Theming");
 
-    lv_create_custom_menu_dropdown("Theme", panel, theme_dropdown, "Blue\nGreen\nLime\nGrey\nYellow\nOrange\nRed\nPurple", get_current_printer()->printer_config->color_scheme, NULL, PRINTER_SPECIFIC_SETTING);
-    lv_create_custom_menu_switch("Light Mode", panel, light_mode_switch, get_current_printer()->printer_config->light_mode, NULL, PRINTER_SPECIFIC_SETTING);
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    int color_scheme = printer->printer_config->color_scheme;
+    bool light_mode = printer->printer_config->light_mode;
+    settings_trace("theming:theme");
+    lv_create_custom_menu_dropdown("Theme", panel, theme_dropdown, "Blue\nGreen\nLime\nGrey\nYellow\nOrange\nRed\nPurple", color_scheme, NULL, PRINTER_SPECIFIC_SETTING);
+    settings_trace("theming:light-mode");
+    lv_create_custom_menu_switch("Light Mode", panel, light_mode_switch, light_mode, NULL, PRINTER_SPECIFIC_SETTING);
+    settings_trace("theming:done");
 }
 
 void settings_section_behaviour(lv_obj_t* panel)
 {
-    PrinterType printer_type = get_current_printer()->printer_config->printer_type;
+    settings_trace("behaviour:start");
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+    PrinterType printer_type = printer->printer_config->printer_type;
     bool is_klipper = printer_type == PrinterTypeKlipper || printer_type == PrinterTypeKlipperSerial;
     bool is_octo = printer_type == PrinterTypeOctoprint;
     bool is_bambu = printer_type == PrinterTypeBambuLocal;
@@ -193,12 +249,15 @@ void settings_section_behaviour(lv_obj_t* panel)
     
     if (is_klipper)
     {
-        lv_create_custom_menu_dropdown("Estimated Time", panel, estimated_time_dropdown, estimated_time_options, get_current_printer()->printer_config->remaining_time_calc_mode, NULL, PRINTER_SPECIFIC_SETTING);
-        lv_create_custom_menu_dropdown("Stats in Progress Screen", panel, show_stats_on_progress_panel_dropdown, "None\nLayers\nPartial\nAll", get_current_printer()->printer_config->show_stats_on_progress_panel, NULL, PRINTER_SPECIFIC_SETTING);
+        settings_trace("behaviour:estimated-time");
+        lv_create_custom_menu_dropdown("Estimated Time", panel, estimated_time_dropdown, estimated_time_options, printer->printer_config->remaining_time_calc_mode, NULL, PRINTER_SPECIFIC_SETTING);
+        settings_trace("behaviour:stats-klipper");
+        lv_create_custom_menu_dropdown("Stats in Progress Screen", panel, show_stats_on_progress_panel_dropdown, "None\nLayers\nPartial\nAll", printer->printer_config->show_stats_on_progress_panel, NULL, PRINTER_SPECIFIC_SETTING);
     }
     else if (is_bambu)
     {
-        lv_create_custom_menu_dropdown("Stats in Progress Screen", panel, show_stats_on_progress_panel_dropdown, "None\nLayers", get_current_printer()->printer_config->show_stats_on_progress_panel, NULL, PRINTER_SPECIFIC_SETTING);
+        settings_trace("behaviour:stats-bambu");
+        lv_create_custom_menu_dropdown("Stats in Progress Screen", panel, show_stats_on_progress_panel_dropdown, "None\nLayers", printer->printer_config->show_stats_on_progress_panel, NULL, PRINTER_SPECIFIC_SETTING);
     }
 
 #ifndef CYD_SCREEN_DISABLE_TIMEOUT
@@ -210,36 +269,52 @@ void settings_section_behaviour(lv_obj_t* panel)
         }
     }
 
+    settings_trace("behaviour:wake-timeout");
     lv_create_custom_menu_dropdown("Wake Timeout", panel, wake_timeout_dropdown, wake_timeout_options, wake_timeout_settings_index);
 #endif
 
 #ifndef CYD_SCREEN_DISABLE_TIMEOUT
+    settings_trace("behaviour:screen-on-during-print");
     lv_create_custom_menu_switch("Screen On During Print", panel, on_during_print_switch, global_config.on_during_print);
 #endif
 
+    settings_trace("behaviour:multi-printer");
     lv_create_custom_menu_switch("Multi Printer Mode", panel, multi_printer_switch, global_config.multi_printer_mode);
     
     if (is_klipper)
     {
+        settings_trace("behaviour:disable-m117");
         lv_create_custom_menu_switch("Disable M117 Messaging", panel, disable_m117_messaging_switch, global_config.disable_m117_messaging);
 
-        lv_create_custom_menu_switch("Custom Filament Move Macros", panel, filament_move_mode_switch, get_current_printer()->printer_config->custom_filament_move_macros, NULL, 
+        settings_trace("behaviour:custom-filament");
+        lv_create_custom_menu_switch("Custom Filament Move Macros", panel, filament_move_mode_switch, printer->printer_config->custom_filament_move_macros, NULL, 
             global_config.multi_printer_mode
                 ? "Calls FILAMENT_RETRACT and\nFILAMENT_EXTRUDE in temperature menu\nwhen enabled. Stored per printer."
                 : "Calls FILAMENT_RETRACT and\nFILAMENT_EXTRUDE in temperature menu\nwhen enabled");
 
+        settings_trace("behaviour:show-estop");
         lv_create_custom_menu_switch("Show Emergency Stop", panel, show_estop_switch, global_config.show_estop);
     }
 
+    settings_trace("behaviour:sort-macros");
     lv_create_custom_menu_switch("Sort Macros A->Z", panel, sort_macros_switch, global_config.sort_macros);
 
+    settings_trace("behaviour:full-filenames");
     lv_create_custom_menu_switch("Show Full Filenames", panel, full_filenames_switch, global_config.full_filenames);
+    settings_trace("behaviour:double-size-gcode");
     lv_create_custom_menu_switch("2X Size Gcode Image", panel, double_size_gcode_img_switch, global_config.double_size_gcode_img);
+    settings_trace("behaviour:quick-macro-bar");
+    lv_create_custom_menu_switch("Quick Macro Bar", panel, quick_macro_bar_switch, global_config.quick_macro_bar);
+    settings_trace("behaviour:camera-preview");
+    lv_create_custom_menu_switch("Camera Preview", panel, camera_enabled_switch, global_config.camera_enabled);
+    settings_trace("behaviour:configure-printer-host");
     lv_create_custom_menu_button("Configure Printer Host", panel, reset_ip_click, "Restart");
+    settings_trace("behaviour:done");
 }
 
 void settings_section_device(lv_obj_t* panel)
 {
+    settings_trace("device:start");
     lv_obj_t * label = lv_label_create(panel);
     lv_label_set_text(label, "\nDevice");
 
@@ -251,9 +326,11 @@ void settings_section_device(lv_obj_t* panel)
         }
     }
 
+    settings_trace("device:brightness");
     lv_create_custom_menu_dropdown("Brightness", panel, brightness_dropdown, brightness_options, brightness_settings_index);
 
 #ifndef CYD_SCREEN_DISABLE_INVERT_COLORS
+    settings_trace("device:invert-colors");
     lv_create_custom_menu_switch("Invert Colors", panel, invert_color_switch, global_config.printer_config[global_config.printer_index].invert_colors, NULL, (global_config.multi_printer_mode) ? "Stored per printer" 
     #ifdef CYD_SCREEN_DRIVER_ESP32_2432S028R
         "\nIntended for the 2.8\" dual USB model screen" :  "Intended for the 2.8\" dual USB model screen"
@@ -264,19 +341,24 @@ void settings_section_device(lv_obj_t* panel)
 #endif // CYD_SCREEN_DISABLE_INVERT_COLORS
 
 #ifdef CYD_SCREEN_DRIVER_ESP32_2432S028R
+    settings_trace("device:screen-color-fix");
     lv_create_custom_menu_switch("Screen Color Fix", panel, dualusb_screen_fix_switch, global_config.display_mode, NULL, "ONLY for the 2.8\" dual USB model screen");
 #endif
 
 #if defined(CYD_SCREEN_DRIVER_ESP32_SMARTDISPLAY) && !defined(CYD_SCREEN_DISABLE_TOUCH_CALIBRATION)
     // TODO: Rotating screen requires different calibration points. 
 #else
+    settings_trace("device:rotate-screen");
     lv_create_custom_menu_switch("Rotate Screen", panel, rotate_screen_switch, global_config.rotate_screen);
 #endif
 
+    settings_trace("device:auto-update");
     lv_create_custom_menu_switch("Auto Update", panel, auto_ota_update_switch, global_config.auto_ota_update);
+    settings_trace("device:version");
     lv_create_custom_menu_label("Version", panel, REPO_VERSION "  ");
 
     if (ota_has_update()){
+        settings_trace("device:ota-update-button");
         lv_obj_t *btn = lv_btn_create(panel);
         lv_obj_add_event_cb(btn, btn_ota_do_update, LV_EVENT_CLICKED, NULL);
 
@@ -287,23 +369,53 @@ void settings_section_device(lv_obj_t* panel)
         lv_create_custom_menu_entry("Device", btn, panel);
     }
     else {
+        settings_trace("device:board-label");
         lv_create_custom_menu_label("Device", panel, ARDUINO_BOARD "  ");
     }
 
 #ifndef CYD_SCREEN_DISABLE_TOUCH_CALIBRATION
+    settings_trace("device:calibrate-touch");
     lv_create_custom_menu_button("Calibrate Touch", panel, reset_calibration_click, "Restart");
 #endif // CYD_SCREEN_DISABLE_TOUCH_CALIBRATION
 
+    settings_trace("device:configure-wifi");
     lv_create_custom_menu_button("Configure WiFi", panel, reset_wifi_click, "Restart");
+    settings_trace("device:restart-esp");
     lv_create_custom_menu_button("Restart ESP", panel, reset_click, "Restart");
+    settings_trace("device:done");
 }
 
 void settings_panel_init(lv_obj_t* panel){
+    settings_trace("init:start");
+    BasePrinter* printer = get_current_printer();
+    if (!printer) {
+        settings_trace("init:no-printer");
+        return;
+    }
+    // Verify printer config array is valid before accessing
+    if (!printer->printer_config) {
+        settings_trace("init:no-printer-config");
+        return;
+    }
+    // Verify we have at least one printer config entry
+    if (global_config_get_printer_config_count() == 0) {
+        settings_trace("init:no-configured-printers");
+        return;
+    }
+    // Bounds check for printer_index against the config slot array
+    if (global_config.printer_index >= PRINTER_CONFIG_COUNT) {
+        settings_trace("init:printer-index-oob");
+        return;
+    }
     lv_obj_set_style_pad_all(panel, CYD_SCREEN_GAP_PX, 0);
     lv_layout_flex_column(panel);
     lv_obj_set_scrollbar_mode(panel, LV_SCROLLBAR_MODE_OFF);
 
+    settings_trace("init:call-theming");
     settings_section_theming(panel);
+    settings_trace("init:call-behaviour");
     settings_section_behaviour(panel);
+    settings_trace("init:call-device");
     settings_section_device(panel);
+    settings_trace("init:done");
 }

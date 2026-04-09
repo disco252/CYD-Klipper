@@ -6,7 +6,7 @@
 #include <HardwareSerial.h>
 
 static void btn_goto_settings(lv_event_t * e){
-    nav_buttons_setup(PANEL_SETTINGS);
+    nav_buttons_setup_deferred(PANEL_SETTINGS);
 }
 
 void macros_panel_init(lv_obj_t* panel) {

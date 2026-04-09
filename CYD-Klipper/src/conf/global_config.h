@@ -3,7 +3,7 @@
 
 #include "lvgl.h"
 
-#define CONFIG_VERSION 7
+#define CONFIG_VERSION 8
 #define PRINTER_CONFIG_COUNT 6
 #define DISPLAY_SECRETS 0
 
@@ -61,6 +61,9 @@ typedef struct {
     unsigned short printer_move_x_steps[3];
     unsigned short printer_move_y_steps[3];
     unsigned short printer_move_z_steps[3];
+
+    // Quick macro bar configuration
+    char quick_macros[6][64];
 } PrinterConfiguration;
 
 typedef struct {
@@ -84,6 +87,8 @@ typedef struct {
             bool show_estop : 1;
             bool full_filenames : 1;
             bool double_size_gcode_img : 1;
+            bool quick_macro_bar : 1;
+            bool camera_enabled : 1;
         };
     };
 

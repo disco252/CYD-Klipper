@@ -37,7 +37,7 @@ static void btn_print_file_verify(lv_event_t * e)
     lv_obj_t * panel = lv_obj_create(lv_scr_act());
     lv_obj_set_style_pad_hor(panel, CYD_SCREEN_GAP_PX * 2, 0);
     lv_obj_set_style_pad_ver(panel, CYD_SCREEN_GAP_PX, 0);
-    lv_obj_set_size(panel, CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 4, CYD_SCREEN_HEIGHT_PX - CYD_SCREEN_GAP_PX * 3);
+    lv_obj_set_size(panel, CYD_SCREEN_PANEL_WIDTH_PX - CYD_SCREEN_GAP_PX * 4, CYD_SCREEN_PANEL_HEIGHT_PX - CYD_SCREEN_GAP_PX * 3);
     lv_obj_align(panel, LV_ALIGN_CENTER, 0, 0);
     lv_layout_flex_column(panel, LV_FLEX_ALIGN_CENTER);
 

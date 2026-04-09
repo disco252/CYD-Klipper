@@ -46,7 +46,7 @@ void lv_obj_on_destroy_free_data(lv_obj_t * element, const void* ptr)
 }
 
 void lv_create_fullscreen_button_matrix_popup(lv_obj_t * root, lv_event_cb_t title, lv_button_column_t* columns, int column_count){
-    const auto full_panel_width = CYD_SCREEN_WIDTH_PX - CYD_SCREEN_GAP_PX * 3;
+    const auto full_panel_width = CYD_SCREEN_PANEL_WIDTH_PX - CYD_SCREEN_GAP_PX * 3;
     const auto full_panel_inner_width = full_panel_width - CYD_SCREEN_GAP_PX * 2 - 4;
     const auto full_panel_height = CYD_SCREEN_HEIGHT_PX - CYD_SCREEN_GAP_PX;
     const auto full_panel_inner_height = full_panel_height - CYD_SCREEN_GAP_PX * 2 - 4;
@@ -168,7 +168,7 @@ void lv_create_keyboard_text_entry(lv_event_cb_t keyboard_callback, const char* 
 
 const static lv_point_t line_points[] = { {0, 0}, {(short int)((CYD_SCREEN_PANEL_WIDTH_PX - CYD_SCREEN_GAP_PX * 2) * 0.85f), 0} };
 
-void lv_create_custom_menu_entry(const char* label_text, lv_obj_t* object, lv_obj_t* root_panel, bool set_height, const char * comment)
+static lv_obj_t* lv_create_custom_menu_row(const char* label_text, lv_obj_t* root_panel, const char* comment)
 {
     lv_obj_t * panel = lv_create_empty_panel(root_panel);
     lv_layout_flex_row(panel, LV_FLEX_ALIGN_END);
@@ -179,24 +179,31 @@ void lv_create_custom_menu_entry(const char* label_text, lv_obj_t* object, lv_ob
     lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_flex_grow(label, 1);
 
-    lv_obj_set_parent(object, panel);
-
-    if (set_height) 
-    {
-        lv_obj_set_height(object, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
-    }
-
     if (comment != NULL)
     {
         lv_obj_t * comment_label = lv_label_create(root_panel);
         lv_label_set_text(comment_label, comment);
-        lv_obj_set_style_text_font(comment_label, &CYD_SCREEN_FONT_SMALL, 0);
+        lv_obj_set_style_text_font(comment_label, &lv_font_montserrat_12, 0);
     }
 
     lv_obj_t * line = lv_line_create(root_panel);
     lv_line_set_points(line, line_points, 2);
     lv_obj_set_style_line_width(line, 1, 0);
     lv_obj_set_style_line_color(line, lv_color_hex(0xAAAAAA), 0);
+
+    return panel;
+}
+
+void lv_create_custom_menu_entry(const char* label_text, lv_obj_t* object, lv_obj_t* root_panel, bool set_height, const char * comment)
+{
+    lv_obj_t * panel = lv_create_custom_menu_row(label_text, root_panel, comment);
+
+    lv_obj_set_parent(object, panel);
+
+    if (set_height) 
+    {
+        lv_obj_set_height(object, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    }
 }
 
 #define DROPDOWN_WIDTH CYD_SCREEN_MIN_BUTTON_WIDTH_PX * 3.75
@@ -241,6 +248,7 @@ void lv_create_custom_menu_label(const char *label_text, lv_obj_t* root_panel, c
 {
     lv_obj_t * label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, text);
+
     lv_create_custom_menu_entry(label_text, label, root_panel, false);
 }
 

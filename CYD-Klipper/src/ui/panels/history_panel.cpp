@@ -9,8 +9,16 @@
 void history_panel_init(lv_obj_t* panel)
 {
     freeze_request_thread();
-    KlipperPrinter* printer = (KlipperPrinter*)get_current_printer();
-    PrintHistoryResult history = printer->get_print_history();
+    BasePrinter* printer = get_current_printer();
+    if (!printer) {
+        unfreeze_request_thread();
+        lv_obj_t* label = lv_label_create(panel);
+        lv_label_set_text(label, "Printer not available");
+        lv_obj_center(label);
+        return;
+    }
+    KlipperPrinter* klipper_printer = static_cast<KlipperPrinter*>(printer);
+    PrintHistoryResult history = klipper_printer->get_print_history();
     unfreeze_request_thread();
 
     lv_obj_t* scroll = lv_obj_create(panel);
@@ -36,7 +44,7 @@ void history_panel_init(lv_obj_t* panel)
         history.totals.total_jobs, h, m,
         history.totals.total_filament_used_mm / 1000.0f);
     lv_obj_t* totals_label = lv_label_create(scroll);
-    lv_obj_set_style_text_font(totals_label, &CYD_SCREEN_FONT_SMALL, 0);
+    lv_obj_set_style_text_font(totals_label, &lv_font_montserrat_12, 0);
     lv_label_set_long_mode(totals_label, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(totals_label, CYD_SCREEN_PANEL_WIDTH_PX - CYD_SCREEN_GAP_PX * 4);
     lv_label_set_text(totals_label, buf);
@@ -77,7 +85,7 @@ void history_panel_init(lv_obj_t* panel)
         lv_label_set_text(name, buf);
 
         lv_obj_t* stats = lv_label_create(row);
-        lv_obj_set_style_text_font(stats, &CYD_SCREEN_FONT_SMALL, 0);
+        lv_obj_set_style_text_font(stats, &lv_font_montserrat_12, 0);
         sprintf(buf, "%ldh%02ldm   %.2fm filament", jh, jm, job.filament_used_mm / 1000.0f);
         lv_label_set_text(stats, buf);
     }

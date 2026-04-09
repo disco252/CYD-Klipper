@@ -11,7 +11,11 @@
 #include "macros.h"
 
 void check_if_screen_needs_to_be_disabled(){
-    if (global_config.on_during_print && get_current_printer_data()->state == PrinterState::PrinterStatePrinting){
+    PrinterData* printer_data = get_current_printer_data();
+    if (!printer_data) {
+        return;
+    }
+    if (global_config.on_during_print && printer_data->state == PrinterState::PrinterStatePrinting){
         screen_timer_wake();
         screen_timer_stop();
     }
@@ -24,6 +28,9 @@ static void on_state_change(void * s, lv_msg_t * m){
     check_if_screen_needs_to_be_disabled();
     
     PrinterData* printer = get_current_printer_data();
+    if (!printer) {
+        return;
+    }
 
     if (printer->state == PrinterState::PrinterStateOffline){
         nav_buttons_setup(PANEL_CONNECTING);
@@ -41,7 +48,15 @@ static void on_state_change(void * s, lv_msg_t * m){
 
 static void on_popup_message(void * s, lv_msg_t * m)
 {
-    lv_create_popup_message(get_current_printer_data()->popup_message, get_current_printer()->popup_message_timeout_s * 1000);
+    PrinterData* printer_data = get_current_printer_data();
+    if (!printer_data) {
+        return;
+    }
+    BasePrinter* printer = get_current_printer();
+    if (!printer) {
+        return;
+    }
+    lv_create_popup_message(printer_data->popup_message, printer->popup_message_timeout_s * 1000);
 }
 
 void main_ui_setup(){

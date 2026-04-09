@@ -80,7 +80,7 @@ static void keyboard_cb_edit_move_increment(lv_event_t * e)
     LOG_F(("Setting increment %d %d %f\n", selected_column, selected_row, increment))
     items[selected_column][selected_row] = increment * 10;
     write_global_config();
-    nav_buttons_setup(PANEL_MOVE);
+    nav_buttons_setup_deferred(PANEL_MOVE);
 }
 
 static void edit_move_increment(int column, float* idx)
@@ -180,7 +180,7 @@ static void disable_steppers_click(lv_event_t * e) {
 
 static void switch_to_stat_panel(lv_event_t * e) {
     lv_obj_t * panel = lv_event_get_target(e);
-    nav_buttons_setup(PANEL_STATS);
+    nav_buttons_setup_deferred(PANEL_STATS);
 }
 
 static void move_edit_toggle(lv_event_t * e)
@@ -368,10 +368,148 @@ void move_panel_init(lv_obj_t* panel){
     lv_msg_subsribe_obj(DATA_PRINTER_DATA, panel, NULL);
 }
 
+void jog_panel_back(lv_event_t* e){
+    nav_buttons_setup_deferred(PANEL_MOVE);
+}
+
 void jog_panel_init(lv_obj_t* panel){
     calculate_offsets_from_current_printer();
     last_homing_state = !get_current_printer_data()->homed_axis;
 
     lv_obj_add_event_cb(panel, root_panel_state_update, LV_EVENT_MSG_RECEIVED, NULL);
     lv_msg_subsribe_obj(DATA_PRINTER_DATA, panel, NULL);
+
+    // Create main container with flex layout
+    lv_obj_t* container = lv_obj_create(panel);
+    lv_obj_set_size(container, CYD_SCREEN_PANEL_WIDTH_PX, CYD_SCREEN_PANEL_HEIGHT_PX);
+    lv_obj_set_style_pad_all(container, CYD_SCREEN_GAP_PX, 0);
+    lv_layout_flex_column(container, LV_FLEX_ALIGN_SPACE_BETWEEN, CYD_SCREEN_GAP_PX, CYD_SCREEN_GAP_PX);
+
+    const auto width = CYD_SCREEN_PANEL_WIDTH_PX - CYD_SCREEN_GAP_PX * 2;
+
+    // === TOP SECTION: Position Labels ===
+    lv_obj_t* position_row = lv_create_empty_panel(container);
+    lv_obj_set_size(position_row, width, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_layout_flex_row(position_row, LV_FLEX_ALIGN_SPACE_AROUND);
+
+    // X position label (clickable)
+    lv_obj_t* btn = lv_btn_create(position_row);
+    lv_obj_set_height(btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_add_event_cb(btn, x_line_custom, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_flex_grow(btn, 1);
+    lv_obj_t* label = lv_label_create(btn);
+    lv_label_set_text(label, "X: ?");
+    lv_obj_add_event_cb(label, x_pos_update, LV_EVENT_MSG_RECEIVED, NULL);
+    lv_msg_subsribe_obj(DATA_PRINTER_DATA, label, NULL);
+
+    // Y position label (clickable)
+    btn = lv_btn_create(position_row);
+    lv_obj_set_height(btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_add_event_cb(btn, y_line_custom, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_flex_grow(btn, 1);
+    label = lv_label_create(btn);
+    lv_label_set_text(label, "Y: ?");
+    lv_obj_add_event_cb(label, y_pos_update, LV_EVENT_MSG_RECEIVED, NULL);
+    lv_msg_subsribe_obj(DATA_PRINTER_DATA, label, NULL);
+
+    // Z position label (clickable)
+    btn = lv_btn_create(position_row);
+    lv_obj_set_height(btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_add_event_cb(btn, z_line_custom, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_flex_grow(btn, 1);
+    label = lv_label_create(btn);
+    lv_label_set_text(label, "Z: ?");
+    lv_obj_add_event_cb(label, z_pos_update, LV_EVENT_MSG_RECEIVED, NULL);
+    lv_msg_subsribe_obj(DATA_PRINTER_DATA, label, NULL);
+
+    // === MIDDLE SECTION: Jog Buttons ===
+    lv_obj_t* jog_area = lv_create_empty_panel(container);
+    lv_obj_set_size(jog_area, width, CYD_SCREEN_PANEL_HEIGHT_PX * 0.5);
+    lv_layout_flex_column(jog_area);
+
+    // X axis jog buttons
+    lv_obj_t* x_row = lv_create_empty_panel(jog_area);
+    lv_obj_set_size(x_row, width, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_layout_flex_row(x_row, LV_FLEX_ALIGN_SPACE_AROUND);
+
+    for (int i = 0; i < 6; i++) {
+        lv_obj_t* jog_btn = lv_btn_create(x_row);
+        lv_obj_set_height(jog_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+        lv_obj_add_event_cb(jog_btn, x_line_button_press, LV_EVENT_CLICKED, (void*)(x_offsets + i));
+        lv_obj_set_flex_grow(jog_btn, 1);
+        label = lv_label_create(jog_btn);
+        lv_label_set_text(label, x_offset_labels + OFFSET_LABEL_SIZE * i);
+        lv_obj_center(label);
+    }
+
+    // Y axis jog buttons
+    lv_obj_t* y_row = lv_create_empty_panel(jog_area);
+    lv_obj_set_size(y_row, width, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_layout_flex_row(y_row, LV_FLEX_ALIGN_SPACE_AROUND);
+
+    for (int i = 0; i < 6; i++) {
+        lv_obj_t* jog_btn = lv_btn_create(y_row);
+        lv_obj_set_height(jog_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+        lv_obj_add_event_cb(jog_btn, y_line_button_press, LV_EVENT_CLICKED, (void*)(y_offsets + i));
+        lv_obj_set_flex_grow(jog_btn, 1);
+        label = lv_label_create(jog_btn);
+        lv_label_set_text(label, y_offset_labels + OFFSET_LABEL_SIZE * i);
+        lv_obj_center(label);
+    }
+
+    // Z axis jog buttons
+    lv_obj_t* z_row = lv_create_empty_panel(jog_area);
+    lv_obj_set_size(z_row, width, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_layout_flex_row(z_row, LV_FLEX_ALIGN_SPACE_AROUND);
+
+    for (int i = 0; i < 6; i++) {
+        lv_obj_t* jog_btn = lv_btn_create(z_row);
+        lv_obj_set_height(jog_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+        lv_obj_add_event_cb(jog_btn, z_line_button_press, LV_EVENT_CLICKED, (void*)(z_offsets + i));
+        lv_obj_set_flex_grow(jog_btn, 1);
+        label = lv_label_create(jog_btn);
+        lv_label_set_text(label, z_offset_labels + OFFSET_LABEL_SIZE * i);
+        lv_obj_center(label);
+    }
+
+    // === BOTTOM SECTION: Action Buttons ===
+    lv_obj_t* action_row = lv_create_empty_panel(container);
+    lv_obj_set_size(action_row, width, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_layout_flex_row(action_row);
+
+    // Home button
+    lv_obj_t* home_btn = lv_btn_create(action_row);
+    lv_obj_set_height(home_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_add_event_cb(home_btn, home_button_click, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_flex_grow(home_btn, 1);
+    label = lv_label_create(home_btn);
+    lv_label_set_text(label, LV_SYMBOL_HOME " Home");
+    lv_obj_center(label);
+
+    // Disable Steppers button
+    lv_obj_t* disable_btn = lv_btn_create(action_row);
+    lv_obj_set_height(disable_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_add_event_cb(disable_btn, disable_steppers_click, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_flex_grow(disable_btn, 1);
+    label = lv_label_create(disable_btn);
+    lv_label_set_text(label, LV_SYMBOL_EYE_CLOSE " Free");
+    lv_obj_center(label);
+
+    // Edit mode toggle
+    lv_obj_t* edit_btn = lv_btn_create(action_row);
+    lv_obj_set_size(edit_btn, CYD_SCREEN_MIN_BUTTON_WIDTH_PX, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_add_event_cb(edit_btn, move_edit_toggle, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_flag(edit_btn, LV_OBJ_FLAG_CHECKABLE);
+    label = lv_label_create(edit_btn);
+    lv_label_set_text(label, LV_SYMBOL_EDIT);
+    lv_obj_center(label);
+
+    // Back button
+    lv_obj_t* back_btn = lv_btn_create(action_row);
+    lv_obj_set_height(back_btn, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
+    lv_obj_add_event_cb(back_btn, jog_panel_back, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_flex_grow(back_btn, 1);
+    label = lv_label_create(back_btn);
+    lv_label_set_text(label, "< Back");
+    lv_obj_center(label);
 }

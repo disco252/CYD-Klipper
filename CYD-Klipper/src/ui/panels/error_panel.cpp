@@ -25,7 +25,11 @@ static void btn_click_error_retry(lv_event_t * e){
 
 static void set_state_message_text(lv_event_t * e) {
     lv_obj_t * label = lv_event_get_target(e);
-    lv_label_set_text(label, get_current_printer_data()->state_message);
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        return;
+    }
+    lv_label_set_text(label, data->state_message);
 }
 
 void create_button(const char* label, lv_event_cb_t on_click, lv_obj_t * root){
@@ -41,6 +45,16 @@ void create_button(const char* label, lv_event_cb_t on_click, lv_obj_t * root){
 
 void error_panel_init(lv_obj_t* panel) 
 {
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        lv_layout_flex_column(panel, LV_FLEX_ALIGN_SPACE_BETWEEN);
+        lv_obj_set_style_pad_all(panel, CYD_SCREEN_GAP_PX, 0);
+        lv_obj_t* label = lv_label_create(panel);
+        lv_label_set_text(label, "No printer connection");
+        lv_obj_center(label);
+        return;
+    }
+
     lv_layout_flex_column(panel, LV_FLEX_ALIGN_SPACE_BETWEEN);
     lv_obj_set_style_pad_all(panel, CYD_SCREEN_GAP_PX, 0);
 
@@ -63,27 +77,27 @@ void error_panel_init(lv_obj_t* panel)
     lv_obj_set_size(button_row, CYD_SCREEN_PANEL_WIDTH_PX - CYD_SCREEN_GAP_PX * 2, CYD_SCREEN_MIN_BUTTON_HEIGHT_PX);
     lv_layout_flex_row(button_row);
 
-    if (get_current_printer_data()->error_screen_features & PrinterFeatureRestart)
+    if (data->error_screen_features & PrinterFeatureRestart)
     {
         create_button("Restart", btn_click_restart, button_row);
     }
 
-    if (get_current_printer_data()->error_screen_features & PrinterFeatureFirmwareRestart)
+    if (data->error_screen_features & PrinterFeatureFirmwareRestart)
     {
         create_button("FW Restart", btn_click_firmware_restart, button_row);
     }
 
-    if (get_current_printer_data()->error_screen_features & PrinterFeatureIgnoreError)
+    if (data->error_screen_features & PrinterFeatureIgnoreError)
     {
         create_button("Ignore", btn_click_error_ignore, button_row);
     }
 
-    if (get_current_printer_data()->error_screen_features & PrinterFeatureContinueError)
+    if (data->error_screen_features & PrinterFeatureContinueError)
     {
         create_button("Done", btn_click_error_continue, button_row);
     }
 
-    if (get_current_printer_data()->error_screen_features & PrinterFeatureRetryError)
+    if (data->error_screen_features & PrinterFeatureRetryError)
     {
         create_button("Retry", btn_click_error_retry, button_row);
     }

@@ -22,6 +22,9 @@ static void update_printer_name_text(lv_event_t * e)
     lv_obj_t * label = lv_event_get_target(e);
     int config_index = (int)lv_event_get_user_data(e);
     BasePrinter* printer = get_printer(config_index);
+    if (!printer || !printer->printer_config) {
+        return;
+    }
     lv_label_set_text(label, printer->printer_config->printer_name[0] == 0 ? printer->printer_config->printer_host : printer->printer_config->printer_name);
 }
 
@@ -160,7 +163,7 @@ static void btn_printer_secondary(lv_event_t * e)
     
     if (config_index == get_current_printer_index())
     {
-        nav_buttons_setup(PANEL_SETTINGS);
+        nav_buttons_setup_deferred(PANEL_SETTINGS);
         return;
     }
 
@@ -227,7 +230,7 @@ void create_printer_ui(int index, lv_obj_t * root)
     lv_msg_subsribe_obj(DATA_PRINTER_MINIMAL, progress_bar, (void*)index);
 
     label = lv_label_create(progress_row);
-    lv_obj_set_style_text_font(label, &CYD_SCREEN_FONT_SMALL, 0);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_12, 0);
     lv_obj_add_event_cb(label, update_printer_percentage_text, LV_EVENT_MSG_RECEIVED, (void*)index);
     lv_msg_subsribe_obj(DATA_PRINTER_MINIMAL, label, (void*)index);
 

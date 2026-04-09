@@ -16,6 +16,81 @@ ColorDefinition color_defs[] = {
     {LV_PALETTE_PURPLE, 0, LV_PALETTE_CYAN},
 };
 
+static void initialize_default_printer_config(PrinterConfiguration& config)
+{
+    config.hotend_presets[0] = 0;
+    config.hotend_presets[1] = 200;
+    config.hotend_presets[2] = 240;
+    config.bed_presets[0] = 0;
+    config.bed_presets[1] = 60;
+    config.bed_presets[2] = 70;
+    config.printer_move_x_steps[0] = 10;
+    config.printer_move_x_steps[1] = 100;
+    config.printer_move_x_steps[2] = 1000;
+    config.printer_move_y_steps[0] = 10;
+    config.printer_move_y_steps[1] = 100;
+    config.printer_move_y_steps[2] = 1000;
+    config.printer_move_z_steps[0] = 1;
+    config.printer_move_z_steps[1] = 10;
+    config.printer_move_z_steps[2] = 100;
+}
+
+static void initialize_default_global_config()
+{
+    memset(&global_config, 0, sizeof(global_config));
+    global_config.version = CONFIG_VERSION;
+    global_config.brightness = 255;
+    global_config.screen_timeout = 5;
+
+    for (int i = 0; i < PRINTER_CONFIG_COUNT; i++) {
+        initialize_default_printer_config(global_config.printer_config[i]);
+    }
+}
+
+static int clamp_int(int value, int min_value, int max_value)
+{
+    if (value < min_value) {
+        return min_value;
+    }
+    if (value > max_value) {
+        return max_value;
+    }
+    return value;
+}
+
+static void sanitize_global_config()
+{
+    global_config.version = CONFIG_VERSION;
+    global_config.printer_index = clamp_int(global_config.printer_index, 0, PRINTER_CONFIG_COUNT - 1);
+    global_config.brightness = clamp_int(global_config.brightness, 64, 255);
+
+    bool valid_timeout = false;
+    const unsigned char valid_timeouts[] = {1, 2, 5, 10, 15, 30, 60, 120, 240};
+    for (unsigned int i = 0; i < sizeof(valid_timeouts); i++) {
+        if (global_config.screen_timeout == valid_timeouts[i]) {
+            valid_timeout = true;
+            break;
+        }
+    }
+    if (!valid_timeout) {
+        global_config.screen_timeout = 5;
+    }
+
+    for (int i = 0; i < PRINTER_CONFIG_COUNT; i++) {
+        PrinterConfiguration& config = global_config.printer_config[i];
+        config.printer_type = (PrinterType)clamp_int((int)config.printer_type, (int)PrinterTypeNone, (int)PrinterTypeOctoprint);
+        config.color_scheme = clamp_int(config.color_scheme, 0, 7);
+        config.remaining_time_calc_mode = clamp_int(config.remaining_time_calc_mode, REMAINING_TIME_CALC_PERCENTAGE, REMAINING_TIME_CALC_SLICER);
+        config.show_stats_on_progress_panel = clamp_int(config.show_stats_on_progress_panel, SHOW_STATS_ON_PROGRESS_PANEL_NONE, SHOW_STATS_ON_PROGRESS_PANEL_ALL);
+        config.printer_name[sizeof(config.printer_name) - 1] = '\0';
+        config.printer_host[sizeof(config.printer_host) - 1] = '\0';
+        config.printer_auth[sizeof(config.printer_auth) - 1] = '\0';
+        for (int j = 0; j < 6; j++) {
+            config.quick_macros[j][sizeof(config.quick_macros[j]) - 1] = '\0';
+        }
+    }
+}
+
 void write_global_config()
 {
     Preferences preferences;
@@ -29,7 +104,15 @@ void verify_version()
     Preferences preferences;
     if (!preferences.begin("global_config", false))
         return;
-    
+
+    size_t stored_size = preferences.getBytesLength("global_config");
+    if (stored_size != 0 && stored_size != sizeof(GlobalConfig)) {
+        LOG_F(("Clearing Global Config due to size mismatch: stored=%u current=%u\n", (unsigned int)stored_size, (unsigned int)sizeof(GlobalConfig)))
+        preferences.clear();
+        preferences.end();
+        return;
+    }
+
     GlobalConfig config = {0};
     preferences.getBytes("global_config", &config, sizeof(config));
     LOG_F(("Config version: %d\n", config.version))
@@ -171,30 +254,17 @@ void set_printer_config_index(int index)
 
 void load_global_config() 
 {
-    global_config.version = CONFIG_VERSION;
-    global_config.brightness = 255;
-    global_config.screen_timeout = 5;
-    global_config.printer_config[0].hotend_presets[0] = 0;
-    global_config.printer_config[0].hotend_presets[1] = 200;
-    global_config.printer_config[0].hotend_presets[2] = 240;
-    global_config.printer_config[0].bed_presets[0] = 0;
-    global_config.printer_config[0].bed_presets[1] = 60;
-    global_config.printer_config[0].bed_presets[2] = 70;
-    global_config.printer_config[0].printer_move_x_steps[0] = 10;
-    global_config.printer_config[0].printer_move_x_steps[1] = 100;
-    global_config.printer_config[0].printer_move_x_steps[2] = 1000;
-    global_config.printer_config[0].printer_move_y_steps[0] = 10;
-    global_config.printer_config[0].printer_move_y_steps[1] = 100;
-    global_config.printer_config[0].printer_move_y_steps[2] = 1000;
-    global_config.printer_config[0].printer_move_z_steps[0] = 1;
-    global_config.printer_config[0].printer_move_z_steps[1] = 10;
-    global_config.printer_config[0].printer_move_z_steps[2] = 100;
+    initialize_default_global_config();
 
     verify_version();
     Preferences preferences;
     preferences.begin("global_config", true);
-    preferences.getBytes("global_config", &global_config, sizeof(global_config));
+    size_t stored_size = preferences.getBytesLength("global_config");
+    if (stored_size == sizeof(GlobalConfig)) {
+        preferences.getBytes("global_config", &global_config, sizeof(global_config));
+    }
     preferences.end();
+    sanitize_global_config();
 
     #if defined REPO_DEVELOPMENT  &&  REPO_DEVELOPMENT == 1
         temporary_config.debug = true;

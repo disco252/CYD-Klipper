@@ -3,43 +3,72 @@
 #include "nav_buttons.h"
 #include "ui_utils.h"
 #include <stdio.h>
+#include <stdint.h>
 #include "../conf/global_config.h"
 #include "../core/printer_integration.hpp"
 
 static lv_style_t nav_button_style;
 static lv_style_t nav_button_text_style;
 
+static void nav_buttons_setup_async_cb(void * user_data) {
+    nav_buttons_setup((PANEL_TYPE)(uintptr_t)user_data);
+}
+
+static void nav_buttons_send_printer_data_async_cb(void * user_data) {
+    (void)user_data;
+    BasePrinter* printer = get_current_printer();
+    if (printer) {
+        lv_msg_send(DATA_PRINTER_DATA, printer);
+    }
+}
+
+void nav_buttons_setup_deferred(PANEL_TYPE active_panel) {
+    lv_async_call(nav_buttons_setup_async_cb, (void*)(uintptr_t)active_panel);
+}
+
 static void update_printer_data_z_pos(lv_event_t * e) {
     lv_obj_t * label = lv_event_get_target(e);
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        return;
+    }
     char z_pos_buffer[10];
 
-    sprintf(z_pos_buffer, "Z%.2f", get_current_printer_data()->position[2]);
+    sprintf(z_pos_buffer, "Z%.2f", data->position[2]);
     lv_label_set_text(label, z_pos_buffer);
 }
 
 static void update_printer_data_temp(lv_event_t * e) {
     lv_obj_t * label = lv_event_get_target(e);
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        return;
+    }
     char temp_buffer[10];
 
-    sprintf(temp_buffer, "%.0f/%.0f", get_current_printer_data()->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexNozzle1], get_current_printer_data()->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexBed]);
+    sprintf(temp_buffer, "%.0f/%.0f", data->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexNozzle1], data->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexBed]);
     lv_label_set_text(label, temp_buffer);
 }
 
 static void update_printer_data_time(lv_event_t * e){
     lv_obj_t * label = lv_event_get_target(e);
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        return;
+    }
     char time_buffer[10];
 
-    if (get_current_printer_data()->state == PrinterState::PrinterStateIdle){
+    if (data->state == PrinterState::PrinterStateIdle){
         lv_label_set_text(label, "Idle");
         return;
     }
 
-    if (get_current_printer_data()->state == PrinterState::PrinterStatePaused){
+    if (data->state == PrinterState::PrinterStatePaused){
         lv_label_set_text(label, "Paused");
         return;
     }
 
-    unsigned long time = get_current_printer_data()->remaining_time_s;
+    unsigned long time = data->remaining_time_s;
     unsigned long hours = time / 3600;
     unsigned long minutes = (time % 3600) / 60;
     unsigned long seconds = (time % 3600) % 60;
@@ -79,43 +108,51 @@ static void update_multi_printer_label(lv_event_t * e) {
 }
 
 static void btn_click_files(lv_event_t * e){
-    nav_buttons_setup(PANEL_FILES);
+    nav_buttons_setup_deferred(PANEL_FILES);
 }
 
 static void btn_click_progress(lv_event_t * e){
-    nav_buttons_setup(PANEL_PROGRESS);
+    nav_buttons_setup_deferred(PANEL_PROGRESS);
 }
 
 static void btn_click_move(lv_event_t * e){
-    nav_buttons_setup(PANEL_JOG);
+    nav_buttons_setup_deferred(PANEL_JOG);
 }
 
 static void btn_click_history(lv_event_t * e){
-    nav_buttons_setup(PANEL_HISTORY);
+    nav_buttons_setup_deferred(PANEL_HISTORY);
 }
 
 static void btn_click_extrude(lv_event_t * e){
-    nav_buttons_setup(PANEL_TEMP);
+    nav_buttons_setup_deferred(PANEL_TEMP);
 }
 
 static void btn_click_settings(lv_event_t * e){
-    nav_buttons_setup(PANEL_SETTINGS);
+    nav_buttons_setup_deferred(PANEL_SETTINGS);
 }
 
 static void btn_click_macros(lv_event_t * e){
-    nav_buttons_setup(PANEL_MACROS);
+    nav_buttons_setup_deferred(PANEL_MACROS);
+}
+
+static void btn_click_quick_macro(lv_event_t * e){
+    nav_buttons_setup_deferred(PANEL_QUICK_MACRO);
 }
 
 static void btn_click_printer(lv_event_t * e){
-    nav_buttons_setup(PANEL_PRINTER);
+    nav_buttons_setup_deferred(PANEL_PRINTER);
 }
 
 static void btn_click_err(lv_event_t * e){
-    nav_buttons_setup(PANEL_ERROR);
+    nav_buttons_setup_deferred(PANEL_ERROR);
+}
+
+static void btn_click_camera(lv_event_t * e){
+    nav_buttons_setup_deferred(PANEL_CAMERA);
 }
 
 static void btn_click_conn(lv_event_t * e){
-    nav_buttons_setup(PANEL_CONNECTING);
+    nav_buttons_setup_deferred(PANEL_CONNECTING);
 }
 
 void create_button(const char* icon, const char* name, lv_event_cb_t button_click, lv_event_cb_t label_update, lv_obj_t * root){
@@ -139,12 +176,27 @@ void create_button(const char* icon, const char* name, lv_event_cb_t button_clic
     label = lv_label_create(btn);
     lv_label_set_text(label, name);
     lv_obj_align(label, LV_ALIGN_CENTER, 0, CYD_SCREEN_GAP_PX);
-    lv_obj_add_event_cb(label, label_update, LV_EVENT_MSG_RECEIVED, NULL);
-    lv_msg_subsribe_obj(DATA_PRINTER_DATA, label, NULL);
+    if (label_update != NULL) {
+        lv_obj_add_event_cb(label, label_update, LV_EVENT_MSG_RECEIVED, NULL);
+        lv_msg_subsribe_obj(DATA_PRINTER_DATA, label, NULL);
+    }
     lv_obj_add_style(label, &nav_button_text_style, 0);
 }
 
 void nav_buttons_setup(PANEL_TYPE active_panel){
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        // No printer data available - show a basic connecting panel
+        lv_obj_clean(lv_scr_act());
+        lv_obj_t * panel = lv_create_empty_panel(lv_scr_act());
+        lv_obj_set_size(panel, CYD_SCREEN_PANEL_WIDTH_PX, CYD_SCREEN_PANEL_HEIGHT_PX);
+        lv_obj_align(panel, LV_ALIGN_TOP_LEFT, 0, 0);
+        lv_obj_t* label = lv_label_create(panel);
+        lv_label_set_text(label, "No printer connection");
+        lv_obj_center(label);
+        return;
+    }
+
     lv_obj_clean(lv_scr_act());
     lv_obj_clear_flag(lv_scr_act(), LV_OBJ_FLAG_SCROLLABLE);
 
@@ -161,9 +213,9 @@ void nav_buttons_setup(PANEL_TYPE active_panel){
 
 #endif
 
-    if (get_current_printer_data()->state > PrinterState::PrinterStateError){
+    if (data->state > PrinterState::PrinterStateError){
         // Files/Print
-        if (get_current_printer_data()->state == PrinterState::PrinterStateIdle)
+        if (data->state == PrinterState::PrinterStateIdle)
         {
             create_button(LV_SYMBOL_COPY, "Idle", btn_click_files, update_printer_data_time, root_panel);
         }
@@ -173,12 +225,12 @@ void nav_buttons_setup(PANEL_TYPE active_panel){
         }
 
         // Move
-        create_button(get_current_printer_data()->state == PrinterState::PrinterStatePrinting ? LV_SYMBOL_EDIT : LV_SYMBOL_CHARGE, "Z?", btn_click_move, update_printer_data_z_pos, root_panel);
+        create_button(data->state == PrinterState::PrinterStatePrinting ? LV_SYMBOL_EDIT : LV_SYMBOL_CHARGE, "Z?", btn_click_move, update_printer_data_z_pos, root_panel);
 
         // Extrude/Temp
         create_button(LV_SYMBOL_WARNING, "?/?", btn_click_extrude, update_printer_data_temp, root_panel);
     }
-    else if (get_current_printer_data()->state == PrinterState::PrinterStateError) {
+    else if (data->state == PrinterState::PrinterStateError) {
         // Error UI
         create_button(LV_SYMBOL_WARNING, "Error", btn_click_err, NULL, root_panel);
     }
@@ -190,8 +242,18 @@ void nav_buttons_setup(PANEL_TYPE active_panel){
     // Macros
     create_button(LV_SYMBOL_GPS, "Macro", btn_click_macros, NULL, root_panel);
 
+    // Quick Macro Settings
+    if (global_config.quick_macro_bar) {
+        create_button(LV_SYMBOL_SETTINGS, "Q.Macro", btn_click_quick_macro, NULL, root_panel);
+    }
+
     // History
     create_button(LV_SYMBOL_LIST, "Hist", btn_click_history, NULL, root_panel);
+
+    // Camera
+    if (global_config.camera_enabled) {
+        create_button(LV_SYMBOL_IMAGE, "Cam", btn_click_camera, NULL, root_panel);
+    }
 
     if (global_config.multi_printer_mode)
     {
@@ -240,9 +302,15 @@ void nav_buttons_setup(PANEL_TYPE active_panel){
         case PANEL_JOG:
             jog_panel_init(panel);
             break;
+        case PANEL_CAMERA:
+            camera_panel_init(panel);
+            break;
+        case PANEL_QUICK_MACRO:
+            quick_macro_settings_panel_init(panel);
+            break;
     }
 
-    lv_msg_send(DATA_PRINTER_DATA, get_current_printer());
+    lv_async_call(nav_buttons_send_printer_data_async_cb, NULL);
 }
 
 void nav_style_setup(){
@@ -250,5 +318,5 @@ void nav_style_setup(){
     lv_style_set_radius(&nav_button_style, 0);
 
     lv_style_init(&nav_button_text_style);
-    lv_style_set_text_font(&nav_button_text_style, &CYD_SCREEN_FONT_SMALL);
+    lv_style_set_text_font(&nav_button_text_style, &lv_font_montserrat_12);
 }

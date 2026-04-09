@@ -10,6 +10,7 @@
 #include <Esp.h>
 #include "core/lv_setup.h"
 #include "ui/ota_setup.h"
+#include "core/camera_integration.hpp"
 
 void setup() {
     Serial.begin(115200);

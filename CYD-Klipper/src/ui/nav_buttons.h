@@ -13,7 +13,10 @@ enum PANEL_TYPE {
     PANEL_PROGRESS = 9,
     PANEL_HISTORY = 10,
     PANEL_JOG = 11,
+    PANEL_CAMERA = 12,
+    PANEL_QUICK_MACRO = 13,
 };
 
 void nav_buttons_setup(PANEL_TYPE active_panel);
+void nav_buttons_setup_deferred(PANEL_TYPE active_panel);
 void nav_style_setup();

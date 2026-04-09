@@ -19,6 +19,23 @@
 
 #include <stdint.h>
 
+/* Screen/layout values are usually provided by board config/build flags. */
+#ifndef CYD_SCREEN_GAP_PX
+    #define CYD_SCREEN_GAP_PX 4
+#endif
+
+#ifndef CYD_SCREEN_MIN_BUTTON_HEIGHT_PX
+    #define CYD_SCREEN_MIN_BUTTON_HEIGHT_PX 40
+#endif
+
+#ifndef CYD_SCREEN_SIDEBAR_SIZE_PX
+    #define CYD_SCREEN_SIDEBAR_SIZE_PX 60
+#endif
+
+#ifndef CYD_SCREEN_FONT_SMALL
+    #define CYD_SCREEN_FONT_SMALL lv_font_montserrat_12
+#endif
+
 /*====================
    COLOR SETTINGS
  *====================*/
@@ -49,7 +66,7 @@
 #define LV_MEM_CUSTOM 0
 #if LV_MEM_CUSTOM == 0
     /*Size of the memory available for `lv_mem_alloc()` in bytes (>= 2kB)*/
-    #define LV_MEM_SIZE (40U * 1024U)          /*[bytes]*/
+    #define LV_MEM_SIZE (39U * 1024U)          /*[bytes]*/
 
     /*Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too.*/
     #define LV_MEM_ADR 0     /*0: unused*/
@@ -136,6 +153,7 @@
  *LV_GRAD_CACHE_DEF_SIZE sets the size of this cache in bytes.
  *If the cache is too small the map will be allocated only while it's required for the drawing.
  *0 mean no caching.*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_GRAD_CACHE_DEF_SIZE      0
 
 /*Allow dithering the gradients (to achieve visual smooth color gradients on limited color depth display)
@@ -247,13 +265,15 @@
 #endif
 
 /*1: Show CPU usage and FPS count*/
-#define LV_USE_PERF_MONITOR REPO_DEVELOPMENT
+/* Disabled by default - set to REPO_DEVELOPMENT to enable */
+#define LV_USE_PERF_MONITOR 0
 #if LV_USE_PERF_MONITOR
     #define LV_USE_PERF_MONITOR_POS LV_ALIGN_BOTTOM_RIGHT
 #endif
 
 /*1: Show the used memory and the memory fragmentation
  * Requires LV_MEM_CUSTOM = 0*/
+/* Disabled by default - set to REPO_DEVELOPMENT to enable */
 #define LV_USE_MEM_MONITOR 0
 #if LV_USE_MEM_MONITOR
     #define LV_USE_MEM_MONITOR_POS LV_ALIGN_BOTTOM_LEFT
@@ -486,6 +506,7 @@
  * Widgets
  *----------*/
 #define LV_USE_CALENDAR   0
+/* Disabled to save RAM on ESP32 boards */
 #if LV_USE_CALENDAR
     #define LV_CALENDAR_WEEK_STARTS_MONDAY 0
     #if LV_CALENDAR_WEEK_STARTS_MONDAY
@@ -504,32 +525,43 @@
 #define LV_USE_CHART      1
 
 #define LV_USE_COLORWHEEL 0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_IMGBTN     1
 
 #define LV_USE_KEYBOARD   1
 
 #define LV_USE_LED        0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_LIST       1
 
 #define LV_USE_MENU       0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_METER      0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_MSGBOX     0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_SPINBOX    0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_SPINNER    0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_TABVIEW    0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_TILEVIEW   0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_WIN        0
+/* Disabled to save RAM on ESP32 boards */
 
 #define LV_USE_SPAN       0
+/* Disabled to save RAM on ESP32 boards */
 #if LV_USE_SPAN
     /*A line text can contain maximum num of span descriptor */
     #define LV_SPAN_SNIPPET_STACK_SIZE 64
@@ -554,9 +586,11 @@
 #endif /*LV_USE_THEME_DEFAULT*/
 
 /*A very simple theme that is a good starting point for a custom theme*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_THEME_BASIC 0
 
 /*A theme designed for monochrome displays*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_THEME_MONO 0
 
 /*-----------
@@ -567,6 +601,7 @@
 #define LV_USE_FLEX 1
 
 /*A layout similar to Grid in CSS.*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_GRID 0
 
 /*---------------------
@@ -576,6 +611,7 @@
 /*File system interfaces for common APIs */
 
 /*API for fopen, fread, etc*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_FS_STDIO 0
 #if LV_USE_FS_STDIO
     #define LV_FS_STDIO_LETTER '\0'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
@@ -584,6 +620,7 @@
 #endif
 
 /*API for open, read, etc*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_FS_POSIX 0
 #if LV_USE_FS_POSIX
     #define LV_FS_POSIX_LETTER '\0'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
@@ -592,6 +629,7 @@
 #endif
 
 /*API for CreateFile, ReadFile, etc*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_FS_WIN32 0
 #if LV_USE_FS_WIN32
     #define LV_FS_WIN32_LETTER  '\0'    /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
@@ -600,6 +638,7 @@
 #endif
 
 /*API for FATFS (needs to be added separately). Uses f_open, f_read, etc*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_FS_FATFS  0
 #if LV_USE_FS_FATFS
     #define LV_FS_FATFS_LETTER '\0'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
@@ -610,6 +649,7 @@
 #define LV_USE_PNG 1
 
 /*BMP decoder library*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_BMP 0
 
 /* JPG + split JPG decoder library.
@@ -617,12 +657,15 @@
 #define LV_USE_SJPG 0
 
 /*GIF decoder library*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_GIF 0
 
 /*QR code library*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_QRCODE 0
 
 /*FreeType library*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_FREETYPE 0
 #if LV_USE_FREETYPE
     /*Memory used by FreeType to cache characters [bytes] (-1: no caching)*/
@@ -640,10 +683,12 @@
 #endif
 
 /*Rlottie library*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_RLOTTIE 0
 
 /*FFmpeg library for image decoding and playing videos
  *Supports all major image formats so do not enable other image decoder with it*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_FFMPEG  0
 #if LV_USE_FFMPEG
     /*Dump input information to stderr*/
@@ -655,15 +700,19 @@
  *----------*/
 
 /*1: Enable API to take snapshot for object*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_SNAPSHOT 0
 
 /*1: Enable Monkey test*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_MONKEY   0
 
 /*1: Enable grid navigation*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_GRIDNAV  0
 
 /*1: Enable lv_obj fragment*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_FRAGMENT 0
 
 /*==================
@@ -678,21 +727,26 @@
  ====================*/
 
 /*Show some widget. It might be required to increase `LV_MEM_SIZE` */
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_DEMO_WIDGETS        0
 #if LV_USE_DEMO_WIDGETS
 #define LV_DEMO_WIDGETS_SLIDESHOW  1
 #endif
 
 /*Demonstrate the usage of encoder and keyboard*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_DEMO_KEYPAD_AND_ENCODER     0
 
 /*Benchmark your system*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_DEMO_BENCHMARK   0
 
 /*Stress test for LVGL*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_DEMO_STRESS      0
 
 /*Music player demo*/
+/* Disabled to save RAM on ESP32 boards */
 #define LV_USE_DEMO_MUSIC       0
 #if LV_USE_DEMO_MUSIC
 # define LV_DEMO_MUSIC_SQUARE       0

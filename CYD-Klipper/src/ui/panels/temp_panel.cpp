@@ -24,36 +24,48 @@ lv_obj_t* root_panel;
 
 static void update_printer_data_hotend_temp(lv_event_t * e){
     lv_obj_t * label = lv_event_get_target(e);
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        return;
+    }
     char hotend_buff[40];
     sprintf(hotend_buff, "Hotend: %.0f C (Target: %.0f C)", 
-        get_current_printer_data()->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexNozzle1], 
-        get_current_printer_data()->target_temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexNozzle1]);
+        data->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexNozzle1], 
+        data->target_temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexNozzle1]);
     lv_label_set_text(label, hotend_buff);
 }
 
 static void update_printer_data_bed_temp(lv_event_t * e){
     lv_obj_t * label = lv_event_get_target(e);
+    PrinterData* data = get_current_printer_data();
+    if (!data) {
+        return;
+    }
     char bed_buff[40];
     sprintf(bed_buff, "Bed: %.0f C (Target: %.0f C)", 
-        get_current_printer_data()->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexBed], 
-        get_current_printer_data()->target_temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexBed]);
+        data->temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexBed], 
+        data->target_temperatures[PrinterTemperatureDeviceIndex::PrinterTemperatureDeviceIndexBed]);
     lv_label_set_text(label, bed_buff);
 }
 
 static short get_temp_preset(int target){
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return -1;
+    }
     switch (target){
         case TARGET_HOTEND_CONFIG_1:
-            return get_current_printer()->printer_config->hotend_presets[0];
+            return printer->printer_config->hotend_presets[0];
         case TARGET_HOTEND_CONFIG_2:
-            return get_current_printer()->printer_config->hotend_presets[1];
+            return printer->printer_config->hotend_presets[1];
         case TARGET_HOTEND_CONFIG_3:
-            return get_current_printer()->printer_config->hotend_presets[2];
+            return printer->printer_config->hotend_presets[2];
         case TARGET_BED_CONFIG_1:
-            return get_current_printer()->printer_config->bed_presets[0];
+            return printer->printer_config->bed_presets[0];
         case TARGET_BED_CONFIG_2:
-            return get_current_printer()->printer_config->bed_presets[1];
+            return printer->printer_config->bed_presets[1];
         case TARGET_BED_CONFIG_3:
-            return get_current_printer()->printer_config->bed_presets[2];
+            return printer->printer_config->bed_presets[2];
         default:
             return -1;
     }
@@ -69,8 +81,12 @@ static void update_temp_preset_label(lv_event_t * e){
 }
 
 void UpdateConfig(){
+    BasePrinter* printer = get_current_printer();
+    if (!printer) {
+        return;
+    }
     write_global_config();
-    lv_msg_send(DATA_PRINTER_TEMP_PRESET, get_current_printer());
+    lv_msg_send(DATA_PRINTER_TEMP_PRESET, printer);
 }
 
 static void keyboard_callback(lv_event_t * e){
@@ -84,6 +100,11 @@ static void keyboard_callback(lv_event_t * e){
         return;
     }
         
+    BasePrinter* printer = get_current_printer();
+    if (!printer || !printer->printer_config) {
+        return;
+    }
+
     switch (keyboard_target){
         case TARGET_HOTEND:
             current_printer_set_target_temperature(PrinterTemperatureDevice::PrinterTemperatureDeviceNozzle1, temp);
@@ -92,27 +113,27 @@ static void keyboard_callback(lv_event_t * e){
             current_printer_set_target_temperature(PrinterTemperatureDevice::PrinterTemperatureDeviceBed, temp);
             break;
         case TARGET_HOTEND_CONFIG_1:
-            get_current_printer()->printer_config->hotend_presets[0] = temp;
+            printer->printer_config->hotend_presets[0] = temp;
             UpdateConfig();
             break;
         case TARGET_HOTEND_CONFIG_2:
-            get_current_printer()->printer_config->hotend_presets[1] = temp;
+            printer->printer_config->hotend_presets[1] = temp;
             UpdateConfig();
             break;
         case TARGET_HOTEND_CONFIG_3:
-            get_current_printer()->printer_config->hotend_presets[2] = temp;
+            printer->printer_config->hotend_presets[2] = temp;
             UpdateConfig();
             break;
         case TARGET_BED_CONFIG_1:
-            get_current_printer()->printer_config->bed_presets[0] = temp;
+            printer->printer_config->bed_presets[0] = temp;
             UpdateConfig();
             break;
         case TARGET_BED_CONFIG_2:
-            get_current_printer()->printer_config->bed_presets[1] = temp;
+            printer->printer_config->bed_presets[1] = temp;
             UpdateConfig();
             break;
         case TARGET_BED_CONFIG_3:
-            get_current_printer()->printer_config->bed_presets[2] = temp;
+            printer->printer_config->bed_presets[2] = temp;
             UpdateConfig();
             break;
     }
@@ -129,7 +150,8 @@ static void show_keyboard_with_bed(lv_event_t * e){
 }
 
 static void cooldown_temp(lv_event_t * e){
-    if (get_current_printer_data()->state == PrinterState::PrinterStatePrinting){
+    PrinterData* data = get_current_printer_data();
+    if (!data || data->state == PrinterState::PrinterStatePrinting) {
         return;
     }
     
@@ -137,7 +159,8 @@ static void cooldown_temp(lv_event_t * e){
 }
 
 static void btn_extrude(lv_event_t * e){
-    if (get_current_printer_data()->state == PrinterState::PrinterStatePrinting){
+    PrinterData* data = get_current_printer_data();
+    if (!data || data->state == PrinterState::PrinterStatePrinting) {
         return;
     }
 
